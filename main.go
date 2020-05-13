@@ -19,17 +19,19 @@ func main() {
 	// 5. Add missing ips to serviceDiscovery
 	// 6. Add missing ips to mongodb replicate set - TODO
 
-	sess := pkg.NewSession()
-
-	metaSvc := ec2metadata.New(sess)
-	ec2Svc := ec2.New(sess)
-	sdSvc := servicediscovery.New(sess)
-	asgSvc := autoscaling.New(sess)
+	sessNoRegion := pkg.NewSessionWithoutRegion()
+	metaSvc := ec2metadata.New(sessNoRegion)
 
 	metaDoc, err := metaSvc.GetInstanceIdentityDocument()
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("Unable to read metadata of current ec2. %s", err.Error()))
 	}
+
+	sess := pkg.NewSession(metaDoc.Region)
+
+	ec2Svc := ec2.New(sess)
+	sdSvc := servicediscovery.New(sess)
+	asgSvc := autoscaling.New(sess)
 
 	instanceID := metaDoc.InstanceID
 	tags, err := pkg.GetTags(ec2Svc, instanceID)
@@ -57,7 +59,7 @@ func main() {
 		panic(fmt.Errorf("Unable to get service discovery dns name. %s", err.Error()))
 	}
 
-	newIPs, err := pkg.RegisterInstacesWithIps(sdSvc, sdServiceID, dnsName, ips)
+	newIPs, err := pkg.RegisterInstacesWithIps(sdSvc, dnsName, sdServiceID, ips)
 	if err != nil {
 		panic(fmt.Errorf("Unable to register instance in sd group. %s", err.Error()))
 	}
