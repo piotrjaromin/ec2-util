@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
@@ -13,7 +14,7 @@ func RegisterInstacesWithIps(sdSvc *servicediscovery.ServiceDiscovery, serviceDn
 	// dns name contains service discovery ips
 	sdIPs, err := net.LookupHost(serviceDns)
 	if err != nil {
-		return newInstanceIPs, fmt.Errorf("Unable to resolve service dns name to ips. %s", err)
+		fmt.Printf("Unable to resolve service dns name to ips, using empty list as default. err: %s", err)
 	}
 
 	for _, sdIP := range sdIPs {
@@ -47,12 +48,13 @@ func contains(s []string, e string) bool {
 }
 
 func registerInstance(sdSvc *servicediscovery.ServiceDiscovery, ipV4, serviceID string) error {
+	instanceID := toInstanceIDFromIP(ipV4)
 	input := &servicediscovery.RegisterInstanceInput{
 		Attributes: map[string]*string{
 			"AWS_INSTANCE_IPV4": &ipV4,
 		},
 		CreatorRequestId: aws.String("ecs-utils"),
-		InstanceId:       &ipV4,
+		InstanceId:       &instanceID,
 		ServiceId:        &serviceID,
 	}
 
@@ -65,8 +67,9 @@ func registerInstance(sdSvc *servicediscovery.ServiceDiscovery, ipV4, serviceID 
 }
 
 func removeInstance(sdSvc *servicediscovery.ServiceDiscovery, ipV4, serviceID string) error {
+	instanceID := toInstanceIDFromIP(ipV4)
 	input := &servicediscovery.DeregisterInstanceInput{
-		InstanceId: &ipV4,
+		InstanceId: &instanceID,
 		ServiceId:  &serviceID,
 	}
 
@@ -76,4 +79,8 @@ func removeInstance(sdSvc *servicediscovery.ServiceDiscovery, ipV4, serviceID st
 	}
 
 	return nil
+}
+
+func toInstanceIDFromIP(ip string) string {
+	return strings.Replace(ip, ".", "-", -1)
 }
