@@ -1,7 +1,8 @@
-package pkg
+package aws
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
 )
@@ -12,7 +13,7 @@ func GetServiceDNS(sdSvc *servicediscovery.ServiceDiscovery, serviceID string) (
 		Id: &serviceID,
 	}
 
-	fmt.Printf("Searching for %s\n", serviceID)
+	log.Printf("Searching for %s\n", serviceID)
 	getServiceOutput, err := sdSvc.GetService(getServiceInput)
 	if err != nil {
 		return "", fmt.Errorf("Unable to get service for service discovery data %s", err)

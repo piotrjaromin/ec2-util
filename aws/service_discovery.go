@@ -1,7 +1,7 @@
-package pkg
+package aws
 
 import (
-	"fmt"
+	"log"
 	"net"
 	"strings"
 
@@ -14,7 +14,7 @@ func RegisterInstacesWithIps(sdSvc *servicediscovery.ServiceDiscovery, serviceDn
 	// dns name contains service discovery ips
 	sdIPs, err := net.LookupHost(serviceDns)
 	if err != nil {
-		fmt.Printf("Unable to resolve service dns name to ips, using empty list as default. err: %s", err)
+		log.Printf("Unable to resolve service dns name to ips, using empty list as default. err: %s\n", err)
 	}
 
 	for _, sdIP := range sdIPs {
