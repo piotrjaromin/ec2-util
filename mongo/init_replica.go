@@ -59,7 +59,7 @@ func InitReplicaSet(currentHost string, hosts []string) error {
 	}
 
 	if len(unhealthyIds) > 0 {
-		log.Printf("Replicaset nodes Ids to removal %+v\n", unhealthyIds)
+		log.Printf("Found unhealthy Replicaset nodes. Ids to removal %+v\n", unhealthyIds)
 		err = removeUnhealthy(session, unhealthyIds)
 		if err != nil {
 			log.Printf("Unable to remove unhealthy members. %s\n", err)
@@ -147,6 +147,7 @@ func addNewMembers(session *mgo.Session, newHosts []string) error {
 
 	for _, host := range newHosts {
 		if !hasHost(host, currentMembers) {
+			log.Printf("Adding new member: %s\n", host)
 			member := replicaset.Member{
 				Address: host,
 			}
