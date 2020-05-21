@@ -13,6 +13,8 @@ import (
 	"github.com/piotrjaromin/ec2-util/mongo"
 )
 
+const mongoPort = "27017"
+
 func main() {
 	currentHost, allHosts, err := handleServiceDiscovery()
 	if err != nil {
@@ -76,7 +78,7 @@ func handleServiceDiscovery() (string, []string, error) {
 		return currentHost, emptyIPs, fmt.Errorf("Unable to get service discovery dns name. %s", err.Error())
 	}
 
-	newIPs, err := ec2aws.RegisterInstacesWithIps(sdSvc, dnsName, sdServiceID, asgIPs)
+	newIPs, err := ec2aws.RegisterInstacesWithIps(sdSvc, mongoPort, dnsName, sdServiceID, asgIPs)
 	if err != nil {
 		return currentHost, asgIPs, fmt.Errorf("Unable to register instance in sd group. %s", err.Error())
 	}
