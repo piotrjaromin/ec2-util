@@ -14,10 +14,12 @@ import (
 
 const clusterNameTag = "Cluster_Name"
 const sdServiceIdTag = "Sd_Service_Id"
+
 const mongoPort = "27017"
 
 func main() {
 	currentHost, allHosts, err := handleServiceDiscovery()
+
 	if err != nil {
 		panic(err)
 	}

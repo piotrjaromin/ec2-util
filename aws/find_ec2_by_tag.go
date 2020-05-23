@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-var ec2RunningState = aws.String("running")
+var ec2RunningState = "running"
 
 // FindEc2IpsByTag searches for private ips with given tagName and tagValue
 func FindEc2IpsByTag(ec2Svc *ec2.EC2, tagName, tagValue string) ([]string, error) {
@@ -41,9 +41,11 @@ func findRunningEc2ByTag(ec2Svc *ec2.EC2, tagName, tagValue string) ([]*ec2.Inst
 		return instances, err
 	}
 
-	for _, instance := range res.Reservations[0].Instances {
-		if instance.State.Name == ec2RunningState {
-			instances = append(instances, instance)
+	for _, reserv := range res.Reservations {
+		for _, instance := range reserv.Instances {
+			if *instance.State.Name == ec2RunningState {
+				instances = append(instances, instance)
+			}
 		}
 	}
 
