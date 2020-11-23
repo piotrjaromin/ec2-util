@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -29,8 +30,8 @@ func main() {
 	}
 }
 
-func handleServiceDiscovery() (string, []string, error) {
-	emptyIPs := []string{}
+func handleServiceDiscovery() (string, map[string]time.Time, error) {
+	emptyIPs := map[string]time.Time{}
 	currentHost := ""
 
 	sessNoRegion := ec2aws.NewSessionWithoutRegion()

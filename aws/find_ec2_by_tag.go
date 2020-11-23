@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -10,8 +11,8 @@ import (
 var ec2RunningState = "running"
 
 // FindEc2IpsByTag searches for private ips with given tagName and tagValue
-func FindEc2IpsByTag(ec2Svc *ec2.EC2, tagName, tagValue string) ([]string, error) {
-	ips := []string{}
+func FindEc2IpsByTag(ec2Svc *ec2.EC2, tagName, tagValue string) (map[string]time.Time, error) {
+	ips := map[string]time.Time{}
 
 	instances, err := findRunningEc2ByTag(ec2Svc, tagName, tagValue)
 	if err != nil {
@@ -19,8 +20,9 @@ func FindEc2IpsByTag(ec2Svc *ec2.EC2, tagName, tagValue string) ([]string, error
 	}
 
 	for _, instance := range instances {
-		ips = append(ips, *instance.PrivateIpAddress)
+		ips[*instance.PrivateIpAddress] = *instance.LaunchTime
 	}
+
 	return ips, nil
 }
 

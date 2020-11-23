@@ -3,7 +3,6 @@ package mongo
 import (
 	"fmt"
 	"log"
-	"sort"
 	"strings"
 	"time"
 
@@ -16,10 +15,14 @@ import (
 const replicaName = "rs0"
 const localhost = "localhost:27017"
 
+type mongoSession interface {
+	Run(cmd interface{}, result interface{}) error
+}
+
 // Not using juju implementation for everything because it was failing for some reason..
 
 // InitReplicaSet initializes replicaSet, if replica set is working then removes unhealthy nodes, and adds new ones
-func InitReplicaSet(currentHost string, hosts []string) error {
+func InitReplicaSet(currentHost string, hosts map[string]time.Time) error {
 	info := &mgo.DialInfo{
 		Addrs:   []string{localhost},
 		Timeout: 25 * time.Second,
@@ -69,10 +72,18 @@ func InitReplicaSet(currentHost string, hosts []string) error {
 	return addNewMembers(session, hosts)
 }
 
-func firstTimeInit(session *mgo.Session, currentHost string, hosts []string) error {
-	sort.Strings(hosts)
-	// whe we init new replica set, just do it for single node
-	if currentHost != hosts[0] {
+func firstTimeInit(session mongoSession, currentHost string, hosts map[string]time.Time) error {
+	oldestHost, oldestLaunchTime := getOldestHost(hosts)
+
+	// if instances started more than 15 minutes ago it might be that replica is already running
+	_15MinAgo := time.Now().Add(time.Duration(-15) * time.Minute)
+	isChanceThatReplicaSetIsRunning := oldestLaunchTime.Before(_15MinAgo)
+	if isChanceThatReplicaSetIsRunning {
+		return nil
+	}
+
+	// when we init new replica set, just do it for single node
+	if currentHost != oldestHost {
 		return nil
 	}
 
@@ -88,6 +99,30 @@ func firstTimeInit(session *mgo.Session, currentHost string, hosts []string) err
 	}
 
 	return nil
+}
+
+func getOldestHost(hosts map[string]time.Time) (string, time.Time) {
+	oldestTime := time.Now()
+	oldestHost := ""
+
+	for host, startTime := range hosts {
+		if startTime.Before(oldestTime) {
+			oldestTime = startTime
+			oldestHost = host
+		}
+	}
+
+	return oldestHost, oldestTime
+}
+
+func getHosts(hosts map[string]time.Time) []string {
+	allHosts := []string{}
+
+	for host := range hosts {
+		allHosts = append(allHosts, host)
+	}
+
+	return allHosts
 }
 
 func isReplicaSetActive(session *mgo.Session) bool {
@@ -137,7 +172,7 @@ func removeUnhealthy(session *mgo.Session, unhealthyIds []int) error {
 	return nil
 }
 
-func addNewMembers(session *mgo.Session, newHosts []string) error {
+func addNewMembers(session *mgo.Session, newHosts map[string]time.Time) error {
 	errString := ""
 
 	currentMembers, err := replicaset.CurrentMembers(session)
@@ -145,7 +180,7 @@ func addNewMembers(session *mgo.Session, newHosts []string) error {
 		return err
 	}
 
-	for _, host := range newHosts {
+	for host := range newHosts {
 		if !hasHost(host, currentMembers) {
 			log.Printf("Adding new member: %s\n", host)
 			member := replicaset.Member{
